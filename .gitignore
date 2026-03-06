@@ -8,7 +8,7 @@ dist/
 *.egg-info/
 
 # Deep Learning / Data (CRITICAL)
-checkpoints/
+## checkpoints/ removed to allow pushing model checkpoints
 outputs/
 data/
 tmp/
