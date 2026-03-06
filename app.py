@@ -96,7 +96,7 @@ def load_model(ckpt_path: str):
     if not Path(ckpt_path).exists():
         return None
 
-    checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+    checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     state = checkpoint.get("model_state_dict", checkpoint)
 
     # Detect backbone
