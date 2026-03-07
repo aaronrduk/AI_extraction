@@ -1,14 +1,15 @@
+
 """
 Training loop for SVAMITVA SAM2 model.
 
 Features:
-  - Mixed-precision training (AMP)
-  - Cosine annealing with linear warmup
-  - Gradient clipping
-  - Staged backbone unfreezing
-  - Early stopping on avg IoU
-  - Top-K checkpoint saving
-  - Per-epoch metric logging
+    - Mixed-precision training (AMP)
+    - Cosine annealing with linear warmup
+    - Gradient clipping
+    - Staged backbone unfreezing
+    - Early stopping on avg IoU
+    - Top-K checkpoint saving
+    - Per-epoch metric logging
 """
 
 import json
@@ -256,15 +257,26 @@ class Trainer:
             config.patience,
         )
 
+        # TensorBoard writer
+        try:
+            from torch.utils.tensorboard import SummaryWriter
+            self.tb_writer = SummaryWriter(log_dir=str(config.log_dir))
+            logger.info("TensorBoard logging enabled.")
+        except ImportError:
+            self.tb_writer = None
+            logger.warning("TensorBoard not available. Run 'pip install tensorboard'.")
+
         # History
         self.history: Dict[str, list] = {
             "train_loss": [],
             "val_loss": [],
             "metrics": [],
+            "train_breakdown": [],
+            "val_breakdown": [],
         }
 
     def fit(self):
-        """Run full training loop."""
+        """Run full training loop with detailed logging and TensorBoard visualization."""
         set_seed(self.config.seed)
         logger.info(
             f"Starting training for {self.config.num_epochs} epochs "
@@ -284,14 +296,16 @@ class Trainer:
             # Train
             train_loss, train_breakdown = self._train_epoch(epoch)
             self.history["train_loss"].append(train_loss)
+            self.history["train_breakdown"].append(train_breakdown)
 
             # Validate
             val_loss, val_metrics = self._validate_epoch(epoch)
             self.history["val_loss"].append(val_loss)
             self.history["metrics"].append(val_metrics)
+            self.history["val_breakdown"].append({k: val_metrics.get(k, 0) for k in train_breakdown.keys()})
 
             # LR schedule
-            self.scheduler.step(epoch)
+            self.scheduler.step()
             current_lr = self.optimizer.param_groups[-1]["lr"]
 
             # Log
@@ -304,6 +318,10 @@ class Trainer:
                 f"LR: {current_lr:.2e}"
             )
 
+            # Per-task loss breakdown
+            logger.info(f"  Train Loss Breakdown: {train_breakdown}")
+            logger.info(f"  Val Loss Breakdown: {self.history['val_breakdown'][-1]}")
+
             # Per-task IoU summary
             task_ious = {
                 k.replace("_iou", ""): f"{v:.3f}"
@@ -311,6 +329,18 @@ class Trainer:
                 if k.endswith("_iou")
             }
             logger.info(f"  Task IoUs: {task_ious}")
+
+            # TensorBoard logging
+            if self.tb_writer:
+                self.tb_writer.add_scalar("Loss/train", train_loss, epoch)
+                self.tb_writer.add_scalar("Loss/val", val_loss, epoch)
+                self.tb_writer.add_scalar("LR", current_lr, epoch)
+                for task, loss_val in train_breakdown.items():
+                    self.tb_writer.add_scalar(f"Loss/{task}_train", loss_val, epoch)
+                for task, loss_val in self.history['val_breakdown'][-1].items():
+                    self.tb_writer.add_scalar(f"Loss/{task}_val", loss_val, epoch)
+                for k, v in task_ious.items():
+                    self.tb_writer.add_scalar(f"IoU/{k}", float(v), epoch)
 
             # Save checkpoint
             self.ckpt_mgr.save(self.model, self.optimizer, epoch, val_metrics)
@@ -328,6 +358,10 @@ class Trainer:
         with open(history_path, "w") as f:
             json.dump(self.history, f, indent=2, default=str)
         logger.info(f"Training history saved to {history_path}")
+
+        if self.tb_writer:
+            self.tb_writer.close()
+            logger.info("TensorBoard logs written.")
 
         logger.info(
             f"Training complete. Best {self.config.metric_for_best}: "

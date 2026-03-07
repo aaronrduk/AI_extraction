@@ -211,29 +211,14 @@ class MultiClassDiceLoss(nn.Module):
 # Default task weights
 DEFAULT_WEIGHTS = {
     "building": 1.0,
-    "roof_type": 0.5,
     "road": 1.0,
-    "road_centerline": 1.2,
-    "waterbody": 1.2,
-    "waterbody_line": 1.2,
-    "waterbody_point": 1.5,
-    "utility_line": 1.2,
-    "utility_point": 1.3,
-    "bridge": 1.5,
-    "railway": 1.3,
+    "waterbody": 1.0,
 }
 
 BINARY_TASKS = [
     "building",
     "road",
-    "road_centerline",
     "waterbody",
-    "waterbody_line",
-    "waterbody_point",
-    "utility_line",
-    "utility_point",
-    "bridge",
-    "railway",
 ]
 
 

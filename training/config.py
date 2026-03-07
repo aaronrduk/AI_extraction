@@ -58,16 +58,8 @@ class TrainingConfig:
     loss_weights: Dict[str, float] = field(
         default_factory=lambda: {
             "building": 1.0,
-            "roof_type": 0.5,
             "road": 1.0,
-            "road_centerline": 1.2,
-            "waterbody": 1.2,
-            "waterbody_line": 1.2,
-            "waterbody_point": 1.5,
-            "utility_line": 1.2,
-            "utility_point": 1.3,
-            "bridge": 1.5,
-            "railway": 1.3,
+            "waterbody": 1.0,
         }
     )
 
