@@ -13,3 +13,4 @@ pandas
 matplotlib
 albumentations
 scipy
+opencv-python

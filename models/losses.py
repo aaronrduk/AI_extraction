@@ -119,9 +119,7 @@ class LovaszHingeLoss(nn.Module):
             # Only keep pixels where mask is 1
             valid_idx = mask > 0.5
             if not valid_idx.any():
-                return torch.tensor(
-                    0.0, device=logits.device, requires_grad=True
-                )
+                return torch.tensor(0.0, device=logits.device, requires_grad=True)
             logits = logits[valid_idx]
             targets = targets[valid_idx]
 
@@ -183,18 +181,14 @@ class MultiClassDiceLoss(nn.Module):
         self.num_classes = num_classes
         self.smooth = smooth
 
-    def forward(
-        self, logits: torch.Tensor, targets: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Args:
             logits: (B, C, H, W)
             targets: (B, H, W) class indices
         """
         probs = F.softmax(logits, dim=1)
-        targets_oh = F.one_hot(
-            targets.long(), self.num_classes
-        )  # (B, H, W, C)
+        targets_oh = F.one_hot(targets.long(), self.num_classes)  # (B, H, W, C)
         targets_oh = targets_oh.permute(0, 3, 1, 2).float()  # (B, C, H, W)
 
         dims = (0, 2, 3)
@@ -212,13 +206,27 @@ class MultiClassDiceLoss(nn.Module):
 DEFAULT_WEIGHTS = {
     "building": 1.0,
     "road": 1.0,
+    "road_centerline": 0.8,
     "waterbody": 1.0,
+    "waterbody_line": 0.8,
+    "waterbody_point": 1.2,
+    "utility_line": 1.0,
+    "utility_point": 1.2,
+    "bridge": 1.0,
+    "railway": 1.0,
 }
 
 BINARY_TASKS = [
     "building",
     "road",
+    "road_centerline",
     "waterbody",
+    "waterbody_line",
+    "waterbody_point",
+    "utility_line",
+    "utility_point",
+    "bridge",
+    "railway",
 ]
 
 

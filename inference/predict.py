@@ -260,10 +260,14 @@ class TiledPredictor:
         all_tasks = self.BINARY_MASKS + ["roof_type_mask"]
 
         for key in all_tasks:
-            # Handle naming inconsistency between head output keys and FEATURES keys
-            mask_key = f"{key}_mask" if key in self.BINARY_MASKS else key
-            if mask_key in outputs:
-                logits = outputs[mask_key].squeeze().cpu().numpy()
+            # Handle naming inconsistency between head output keys and prediction keys
+            # Model output keys are like 'building_mask', 'road_mask', but internally in predict_tif
+            # we use 'building_mask' as key in masks_to_predict.
+            # Looking at SvamitvaModel.forward:
+            # outputs["building_mask"], outputs["roof_type_mask"], outputs["road_mask"], etc.
+            # So the keys already have _mask except for roof_type_mask.
+            if key in outputs:
+                logits = outputs[key].squeeze().cpu().numpy()
                 if return_logits:
                     result[key] = logits
                 else:
