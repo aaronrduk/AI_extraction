@@ -291,7 +291,9 @@ class MultiTaskLoss(nn.Module):
         lovasz = self.lovasz(logits, targets, mask=mask)
         bdry = self.boundary(logits, targets, mask=mask)
 
-        return bce + dice + 0.5 * focal + 1.0 * lovasz + 0.5 * bdry
+        # Balanced sub-loss coefficients for a stable start
+        # BCE and Dice are the primary signal, Lovasz and Boundary refine edges.
+        return 1.0 * bce + 1.0 * dice + 0.2 * focal + 0.5 * lovasz + 0.2 * bdry
 
     def forward(
         self,
@@ -336,5 +338,10 @@ class MultiTaskLoss(nn.Module):
                     w = self.weights.get("roof_type", 0.5)
                     total = total + rt_loss * w
                     breakdown["roof_type"] = rt_loss.item()
+
+        # Normalize loss by number of active tasks
+        n_active = len(breakdown)
+        if n_active > 0:
+            total = total / n_active
 
         return total, breakdown
